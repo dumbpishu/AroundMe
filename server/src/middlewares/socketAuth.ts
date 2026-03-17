@@ -1,4 +1,3 @@
-import { Socket } from "socket.io";
 import jwt from "jsonwebtoken";
 import cookie from "cookie";
 import { AuthSocket } from "../types/socket.type";
