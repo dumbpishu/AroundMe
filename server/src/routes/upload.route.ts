@@ -1,7 +1,7 @@
 import express from "express";
 import { upload } from "../middlewares/upload";
 import { uploadToCloudinary } from "../services/upload.cloudinary";
-import { authMiddleware } from "./authMiddleware";
+import { authMiddleware } from "../middlewares/authMiddleware";
 
 const router = express.Router();
 
