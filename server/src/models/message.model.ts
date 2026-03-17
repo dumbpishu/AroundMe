@@ -46,4 +46,4 @@ const messageSchema = new mongoose.Schema<IMessage>(
 
 messageSchema.index({ geohash: 1, createdAt: -1 });
 
-const Message = mongoose.model<IMessage>("Message", messageSchema);
+export const Message = mongoose.model<IMessage>("Message", messageSchema);
