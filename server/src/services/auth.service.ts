@@ -50,7 +50,7 @@ export const verifyOtpService = async (email: string, otp: string) => {
         await user.save();
     }
 
-    const token = generateAuthToken(user._id.toString());
+    const token = generateAuthToken({ id: user._id.toString(), email: user.email });
 
     const userPayload = {
         _id: user._id,

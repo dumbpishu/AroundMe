@@ -2,6 +2,11 @@ import crypto from "crypto";
 import bcrypt from "bcrypt";
 import jwt, { SignOptions } from "jsonwebtoken";
 
+interface JwtPayload {
+  id: string;
+  email?: string;
+}
+
 export const generateOtp = (length: number = 6): { otp: string; hashedOtp: string } => {
     const otp = crypto.randomInt(0, Math.pow(10, length)).toString().padStart(length, "0");
     const hashedOtp = bcrypt.hashSync(otp, 10);
@@ -12,14 +17,14 @@ export const verifyOtp = async (otp: string, hashedOtp: string): Promise<boolean
     return await bcrypt.compare(otp, hashedOtp);
 }
 
-export const generateAuthToken = (userId: string, expiresIn: SignOptions["expiresIn"] = "7d"): string => {
-    const secretKey = process.env.AUTH_SECRET as string;
+export const generateAuthToken = (payload: JwtPayload, expiresIn: SignOptions["expiresIn"] = "7d"): string => {
+    const secretKey = process.env.AUTH_SECRET;
 
     if (!secretKey) {
         throw new Error("AUTH_SECRET environment variable is not defined.");
     }
 
-    return jwt.sign({ userId }, secretKey, { expiresIn });
+    return jwt.sign(payload, secretKey, { expiresIn });
 }
 
 export const otpEmailTemplate = (otp: string) => {
