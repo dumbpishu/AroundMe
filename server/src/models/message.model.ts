@@ -1,6 +1,22 @@
 import mongoose from "mongoose";
+import { IAttachment, IMessage } from "../types/message.type";
 
-export const messageSchema = new mongoose.Schema(
+const attachmentSchema = new mongoose.Schema<IAttachment>(
+    {
+        url: {
+            type: String,
+            required: true
+        },
+        type: {
+            type: String,
+            enum: ["image", "audio", "video"],
+            required: true
+        }
+    },
+    { _id: false }
+);
+
+const messageSchema = new mongoose.Schema<IMessage>(
     {
         sender: {
             type: mongoose.Schema.Types.ObjectId,
@@ -12,14 +28,17 @@ export const messageSchema = new mongoose.Schema(
             required: true,
             index: true
         },
-        type: {
-            type: String,
-            enum: ["text", "image", "audio", "video"],
-            required: true
-        },
         content: {
-            type: String,
-            required: true
+            type: String
+        },
+        attachments: {
+            type: [attachmentSchema],
+            validate: {
+                validator: function (attachments: IAttachment[]) {
+                    return attachments.length <= 10; 
+                },
+                message: "A message can have a maximum of 10 attachments."
+            }
         }
     },
     { timestamps: true }
@@ -27,4 +46,4 @@ export const messageSchema = new mongoose.Schema(
 
 messageSchema.index({ geohash: 1, createdAt: -1 });
 
-export const Message = mongoose.model("Message", messageSchema);
+const Message = mongoose.model<IMessage>("Message", messageSchema);
