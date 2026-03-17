@@ -23,11 +23,42 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
             socket.join(newRoom);
             userRooms.set(socket.id, newRoom);
 
-            const messages = await Message.find({ geohash: newRoom }).sort({ createdAt: -1 }).limit(50).populate("sender", "email");
-            socket.emit("room_history", messages.reverse());
+            const messages = await Message.find({ geohash: newRoom }).sort({ createdAt: -1 }).limit(50).populate("sender", "email username");
+            const orderedMessages = messages.reverse();
+
+            socket.emit("initial_messages", orderedMessages.map(msg => ({
+                id: msg._id,
+                user: msg.sender,
+                type: msg.type,
+                content: msg.content,
+                time: msg.createdAt
+            })));
             console.log(`User ${socket.user?.email} joined room ${newRoom}`);
         }
     });
+
+    socket.on("load_more_messages", async ({ before }) => {
+        try {
+            const room = userRooms.get(socket.id);
+            if (!room) {
+                console.warn(`User ${socket.user?.email} tried to load more messages without a room`);
+                return;
+            }
+
+            const messages = await Message.find({ geohash: room, createdAt: { $lt: new Date(before) } }).sort({ createdAt: -1 }).limit(50).populate("sender", "email username");
+            const orderedMessages = messages.reverse();
+
+            socket.emit("more_messages", orderedMessages.map(msg => ({
+                id: msg._id,
+                user: msg.sender,
+                type: msg.type,
+                content: msg.content,
+                time: msg.createdAt
+            })));
+        } catch (error) {
+            console.error(`Error loading more messages for user ${socket.user?.email}:`, error);
+        }
+    })
 
     socket.on("send_message", async ({ type, content }) => {
         try {
