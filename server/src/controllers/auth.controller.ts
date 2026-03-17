@@ -18,9 +18,9 @@ export const verifyOtp = async (req: Request, res: Response) => {
     try {
         const { email, otp } = req.body;
 
-        const { user, authToken } = await verifyOtpService(email, otp);
+        const { user, token } = await verifyOtpService(email, otp);
 
-        res.cookie("authToken", authToken, {
+        res.cookie("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
