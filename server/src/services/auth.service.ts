@@ -34,7 +34,7 @@ export const verifyOtpService = async (email: string, otp: string) => {
         throw new Error("OTP has expired or does not exist.");
     }
 
-    const isValid = verifyOtp(otp, otpRecord.otp);
+    const isValid = await verifyOtp(otp, otpRecord.otp);
     
     if (!isValid) {
         throw new Error("Invalid OTP.");
