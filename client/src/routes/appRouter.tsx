@@ -2,10 +2,12 @@ import { createBrowserRouter } from "react-router-dom";
 // layouts
 import { RootLayout } from "../components/layouts/RootLayout";
 import { AuthLayout } from "../components/layouts/AuthLayout";
+import { ChatLayout } from "../components/layouts/ChatLayout";
 // pages
 import { LandingPage } from "../pages/LandingPage";
 import { SendOtp } from "../pages/auth/SendOtp";
 import { VerifyOtp } from "../pages/auth/VerifyOtp";
+import { ChatInbox } from "../pages/chat/ChatInbox";
 
 export const appRouter = createBrowserRouter([
     {
@@ -27,6 +29,16 @@ export const appRouter = createBrowserRouter([
                     {
                         path: "verify-otp",
                         element: <VerifyOtp />
+                    }
+                ]
+            },
+            {
+                path: "chat",
+                element: <ChatLayout />,
+                children: [
+                    {
+                        index: true,
+                        element: <ChatInbox />
                     }
                 ]
             }

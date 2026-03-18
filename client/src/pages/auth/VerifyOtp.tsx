@@ -18,7 +18,7 @@ export const VerifyOtp = () => {
             if (data.success) {
                 alert("OTP verified successfully! You are now logged in.");
                 // You can redirect the user to the dashboard or home page here
-                navigate("/");
+                navigate("/chat");
             } else {
                 alert("Invalid OTP. Please try again.");
             }
