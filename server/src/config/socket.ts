@@ -4,7 +4,7 @@ import { registerChatHandlers } from "../sockets/chat.socket";
 import { userSocketMap, userRoomMap } from "../utils/map";
 import { AuthSocket } from "../types/socket.type";
 
-export const setupSocket = (io: Server) => {
+export const configureSocket = (io: Server) => {
     io.use(socketAuthMiddleware);
 
     io.on("connection", (socket: AuthSocket) => {
