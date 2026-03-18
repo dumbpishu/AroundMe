@@ -5,9 +5,11 @@ import { useScocket } from "../../hooks/useSocket";
 type ChatMessage = {
   createdAt?: string;
   time?: string;
-  sender?: string;
+  sender?: { username: string };
   user?: string;
   content: string;
+  username: string;
+  email: string;
 };
 
 export const Chat = () => {
@@ -198,7 +200,7 @@ export const Chat = () => {
       >
         {messages.map((m, i) => (
           <div key={i} style={{ marginBottom: "5px" }}>
-            <b>{m.sender || m.user || "Unknown"}</b>: {m.content}
+            <b>{m.sender?.username || "Unknown"}</b>: {m.content}
           </div>
         ))}
       </div>
