@@ -26,4 +26,11 @@ import authRoutes from "./routes/auth.route";
 
 app.use("/api/v1/auth", authRoutes);
 
+// global error handler
+app.use((err: Error, req: express.Request, res: express.Response) => {
+    console.error("Global Error Handler:", err);
+    res.status(500).json({ success: false, message: err.message || "Internal Server Error" });
+}
+);
+
 export default app;

@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import cookie from "cookie";
+import * as cookie from "cookie";
 import { AuthSocket } from "../types/socket.type";
 
 export const socketAuthMiddleware = (socket: AuthSocket, next: (err?: Error) => void) => {
