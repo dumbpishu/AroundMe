@@ -7,7 +7,7 @@ import { ChatLayout } from "../components/layouts/ChatLayout";
 import { LandingPage } from "../pages/LandingPage";
 import { SendOtp } from "../pages/auth/SendOtp";
 import { VerifyOtp } from "../pages/auth/VerifyOtp";
-import { ChatInbox } from "../pages/chat/ChatInbox";
+import { Chat } from "../pages/chat/Chat";
 
 export const appRouter = createBrowserRouter([
     {
@@ -38,7 +38,7 @@ export const appRouter = createBrowserRouter([
                 children: [
                     {
                         index: true,
-                        element: <ChatInbox />
+                        element: <Chat />
                     }
                 ]
             }

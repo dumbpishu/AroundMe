@@ -1,4 +1,4 @@
-import { api } from "../services/axios";
+import { api } from "../lib/axios";
 
 export const sendOtp = async (email: string) => {
     const res =  await api.post("/auth/send-otp", { email });
