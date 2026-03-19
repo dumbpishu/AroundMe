@@ -33,7 +33,7 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
                 userRoomMap.set(userId, newRoom);
                 console.log(`User ${userId} joined room ${newRoom}`);
 
-                const messages = await Message.find({ geohash: newRoom }).sort({ createdAt: -1 }).limit(50).lean();
+                const messages = await Message.find({ geohash: newRoom }).populate("sender", "username email").sort({ createdAt: -1 }).limit(50).lean();
                 const orderedMessages = messages.reverse();
                 socket.emit("room_messages", orderedMessages);
             }
@@ -68,7 +68,9 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
                 attachments
             });
 
-            io.to(room).emit("new_message", message);
+            const populatedMessage = await Message.findById(message._id).populate("sender", "username email").lean();
+
+            io.to(room).emit("new_message", populatedMessage);
         } catch (error) {
             console.error("Error sending message:", error);
         }
@@ -82,7 +84,7 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
                 return;
             }
 
-            const messages = await Message.find({ geohash: room, createdAt: { $lt: new Date(before) } }).sort({ createdAt: -1 }).limit(50).lean();
+            const messages = await Message.find({ geohash: room, createdAt: { $lt: new Date(before) } }).populate("sender", "username email").sort({ createdAt: -1 }).limit(50).lean();
             const orderedMessages = messages.reverse();
             socket.emit("more_messages", orderedMessages);
         } catch (error) {

@@ -33,10 +33,6 @@ const userSchema = new mongoose.Schema<IUser, UserModel>(
       type: Boolean,
       default: false
     },
-    isOnline: {
-      type: Boolean,
-      default: false
-    },
     isDeleted: {
       type: Boolean,
       default: false
