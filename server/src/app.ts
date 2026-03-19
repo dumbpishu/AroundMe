@@ -23,8 +23,10 @@ app.use(cookieParser());
 app.use(cors(corsOptions));
 
 import authRoutes from "./routes/auth.route";
+import userRoutes from "./routes/user.route";
 
 app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/users", userRoutes);
 
 // global error handler
 app.use((err: Error, req: express.Request, res: express.Response) => {
