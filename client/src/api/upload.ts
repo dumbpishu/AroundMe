@@ -20,7 +20,7 @@ export const uploadChatMedia = async (files: File[]) => {
     formData.append("file", file);
   });
 
-  const response = await api.post<UploadResponse>("/uploads/media", formData, {
+  const response = await api.post<UploadResponse>("/api/v1/uploads/media", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
