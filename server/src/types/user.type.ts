@@ -5,8 +5,9 @@ export interface IUser {
   email: string;
   username?: string;
   avatar?: string;
+  avatarPublicId?: string;
   isVerified: boolean;
-  isOnline: boolean;
+  lastSeen: Date | null;
   isDeleted: boolean;
   createdAt: Date;
   updatedAt: Date;

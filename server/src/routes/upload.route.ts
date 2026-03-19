@@ -1,6 +1,6 @@
 import express from "express";
-import { upload } from "../middlewares/upload";
-import { uploadToCloudinary } from "../services/upload.cloudinary";
+import { upload } from "../middlewares/multer";
+import { uploadToCloudinary } from "../services/cloudinary.service";
 import { authMiddleware } from "../middlewares/authMiddleware";
 
 const router = express.Router();

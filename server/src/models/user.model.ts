@@ -29,9 +29,17 @@ const userSchema = new mongoose.Schema<IUser, UserModel>(
       type: String,
       trim: true
     },
+    avatarPublicId: {
+      type: String,
+      trim: true
+    },
     isVerified: {
       type: Boolean,
       default: false
+    },
+    lastSeen: {
+      type: Date,
+      default: null
     },
     isDeleted: {
       type: Boolean,
