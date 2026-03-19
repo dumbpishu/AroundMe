@@ -2,7 +2,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 
-const allowedOrigins = ["http://localhost:5173"];
+const allowedOrigins = ["http://localhost:5173", "https://geochat.pishu.in", "https://geo-chat-tau.vercel.app"];
 
 const corsOptions = {
     origin: (origin: string | undefined, callback: (arg0: Error | null, arg1: boolean | undefined) => void) => {
@@ -30,11 +30,16 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/uploads", uploadRoutes);
 
+import { Request, Response, NextFunction } from "express";
+
 // global error handler
-app.use((err: Error, req: express.Request, res: express.Response) => {
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
     console.error("Global Error Handler:", err);
-    res.status(500).json({ success: false, message: err.message || "Internal Server Error" });
-}
-);
+
+    res.status(500).json({
+        success: false,
+        message: err.message || "Internal Server Error"
+    });
+});
 
 export default app;
