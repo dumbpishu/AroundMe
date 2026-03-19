@@ -24,9 +24,11 @@ app.use(cors(corsOptions));
 
 import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.route";
+import uploadRoutes from "./routes/upload.route";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/uploads", uploadRoutes);
 
 // global error handler
 app.use((err: Error, req: express.Request, res: express.Response) => {
