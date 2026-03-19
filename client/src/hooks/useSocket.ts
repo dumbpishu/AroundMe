@@ -1,7 +1,9 @@
 import { useEffect } from "react";
 import { socket } from "../lib/socket";
 
-export const useScocket = (handlers: { [x: string]: (...args: any[]) => void; }) => {
+type SocketHandlers = Record<string, (...args: unknown[]) => void>;
+
+export const useScocket = (handlers: SocketHandlers) => {
     useEffect(() => {
         if (!handlers) return;
 
