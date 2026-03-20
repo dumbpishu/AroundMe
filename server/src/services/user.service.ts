@@ -1,26 +1,6 @@
 import { User } from "../models/user.model";
 import { deleteFromCloudinary } from "./cloudinary.service";
 
-export const currentUserService = async (userId: string) => {
-    const user = await User.findById(userId);
-
-    if (!user || user.isDeleted) {
-        throw new Error("User not found.");
-    }
-
-    const payload = {
-        id: user._id,
-        name: user.name,
-        username: user.username,
-        email: user.email,
-        avatar: user.avatar,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
-    }
-
-    return payload;
-}
-
 export const updateUserDetailsService = async (userId: string, updateData: { name?: string; username?: string }) => {
     const user = await User.findById(userId);
 

@@ -1,21 +1,6 @@
 import { Request, Response } from "express";
-import { currentUserService, updateUserDetailsService, updateUserAvatarService, deleteUserService } from "../services/user.service";
+import { updateUserDetailsService, updateUserAvatarService, deleteUserService } from "../services/user.service";
 import { uploadBufferToCloudinary } from "../services/cloudinary.service";
-
-export const currentUser = async (req: Request, res: Response) => {
-    try {
-        const userId = req.user?.id;
-        if (!userId) {
-            return res.status(401).json({ success: false, message: "Unauthorized" });
-        }
-
-        const userData = await currentUserService(userId);
-
-        return res.status(200).json({ success: true, data: userData, message: "Current user retrieved successfully" });
-    } catch (error) {
-        return res.status(500).json({ success: false, message: "Server Error" });
-    }
-}
 
 export const updateUserDetails = async (req: Request, res: Response) => {
     try {

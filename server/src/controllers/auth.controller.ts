@@ -1,6 +1,6 @@
 import { User } from "../models/user.model";
 import { Request, Response } from "express";
-import { sendOtpService, verifyOtpService } from "../services/auth.service";
+import { getCurrentUserService, sendOtpService, verifyOtpService } from "../services/auth.service";
 
 export const sendOtp = async (req: Request, res: Response) => {
     try {
@@ -45,5 +45,21 @@ export const logout = async (req: Request, res: Response) => {
         res.status(200).json({ success: true, message: "Logged out successfully" });    
     } catch (error) {
         res.status(500).json({ success: false, message: "Failed to log out" });
+    }
+}
+
+export const currentUser = async (req: Request, res: Response) => {
+    try {
+        const userId = req.user?.id;
+
+        if (!userId) {
+            return res.status(401).json({ success: false, message: "Unauthorized" });
+        }
+
+        const user = await getCurrentUserService(userId);
+
+        res.status(200).json({ success: true, data: user, message: "Current user fetched successfully" });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: "Failed to fetch current user" });
     }
 }

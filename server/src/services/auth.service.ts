@@ -64,3 +64,27 @@ export const verifyOtpService = async (email: string, otp: string) => {
 
     return { user: userPayload, token };
 }
+
+export const getCurrentUserService = async (userId: string) => {
+    const user = await User.findById(userId);
+
+    if (!user || user.isDeleted) {
+        throw new Error("User not found.");
+    }
+
+    if (!user.isVerified) {
+        throw new Error("User is not verified.");
+    }
+
+    const payload = {
+        id: user._id,
+        name: user.name,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+    }
+
+    return payload;
+}
