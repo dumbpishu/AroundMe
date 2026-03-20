@@ -1,4 +1,5 @@
 import { Server } from "socket.io";
+import { Types } from "mongoose";
 import { AuthSocket } from "../types/socket.type";
 import { Message } from "../models/message.model";
 import { getGeohash } from "../utils/geohash";
@@ -112,6 +113,49 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
             socket.emit("more_messages", orderedMessages);
         } catch (error) {
             console.error("Error loading more messages:", error);
+        }
+    });
+
+    socket.on("add_reaction", async ({ messageId, reaction }) => {
+        try {
+            const userId = socket.user?.id;
+            if (!userId) return;
+
+            const message = await Message.findById(messageId);
+            if (!message) return;
+
+            if (!message.reactions) {
+                message.reactions = new Map();
+            }
+
+            const existingUser = message.reactions.get(reaction) || [];
+
+            const alreadyReacted = existingUser.some(id => id.toString() === userId.toString());
+
+            if (alreadyReacted) {
+                const updated = existingUser.filter(id => id.toString() !== userId.toString());
+                if (updated.length > 0) {
+                    message.reactions.set(reaction, updated);
+                } else {
+                    message.reactions.delete(reaction);
+                }
+            } else {
+                if (!Types.ObjectId.isValid(userId)) return;
+                const reactingUserId = new Types.ObjectId(userId);
+                message.reactions.set(reaction, [...existingUser, reactingUserId]);
+            }
+
+            await message.save();
+
+            const room = await pub.get(`user:${userId}:room`);
+            if (!room) return;
+
+            io.to(room).emit("reaction_updated", {
+                messageId,
+                reactions: Object.fromEntries(message.reactions)
+            });
+        } catch (error) {
+            console.error("Error adding reaction:", error);
         }
     });
 

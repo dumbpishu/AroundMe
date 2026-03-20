@@ -12,6 +12,8 @@ export interface IMessage extends Document {
   geohash: string;
   content?: string; 
   attachments?: IAttachment[];
+  replyTo?: mongoose.Types.ObjectId | null;
+  reactions: Map<string, mongoose.Types.ObjectId[]>;
   createdAt: Date;
   updatedAt: Date;
 }

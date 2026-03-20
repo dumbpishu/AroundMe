@@ -39,11 +39,27 @@ const messageSchema = new mongoose.Schema<IMessage>(
                 },
                 message: "A message can have a maximum of 10 attachments."
             }
+        },
+        replyTo: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Message",
+            default: null
+        },
+        reactions: {
+            type: Map,
+            of: [
+                {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "User"
+                }
+            ],
+            default: {}
         }
     },
     { timestamps: true }
 );
 
 messageSchema.index({ geohash: 1, createdAt: -1 });
+messageSchema.index({ sender: 1 });
 
 export const Message = mongoose.model<IMessage>("Message", messageSchema);
