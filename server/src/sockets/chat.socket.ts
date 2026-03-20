@@ -24,6 +24,8 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
             const newRoom = getGeohash(lat, lng);
             const currentRoom = await pub.get(`user:${userId}:room`);
 
+            if (currentRoom === newRoom) return;
+
             if (currentRoom && currentRoom !== newRoom) {
                 socket.leave(currentRoom);
 
@@ -50,8 +52,12 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
                     users: userIds, 
                 });
 
-                const messages = await Message.find({ geohash: newRoom }).populate("sender", "username avatar").sort({ createdAt: -1 }).limit(50).lean();
+                const messages = await Message.find({ geohash: newRoom }).populate("sender", "username avatar").populate({ path: "replyTo", select: "content sender", populate: {
+                    path: "sender", select: "username avatar"
+                } }).sort({ createdAt: -1 }).limit(50).lean();
+
                 const orderedMessages = messages.reverse();
+
                 socket.emit("room_messages", orderedMessages);
             }
         } catch (error) {
@@ -59,14 +65,11 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
         }
     });
 
-    socket.on("send_message", async ({ content, attachments }) => {
+    socket.on("send_message", async ({ content, attachments, replyTo }) => {
         try {
             const room = await pub.get(`user:${userId}:room`);
 
-            if (!room) {
-                console.error("User is not in a room. Cannot send message.");
-                return;
-            }
+            if (!room) return;
 
             if (!content && (!attachments || attachments.length === 0)) return;
 
@@ -89,10 +92,13 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
                 sender: userId,
                 geohash: room,
                 content,
-                attachments
+                attachments,
+                replyTo: replyTo || null
             });
 
-            const populatedMessage = await Message.findById(message._id).populate("sender", "username avatar").lean();
+            const populatedMessage = await Message.findById(message._id).populate("sender", "username avatar").populate({ path: "replyTo", select: "content sender", populate: {
+                path: "sender", select: "username avatar"
+            } }).lean();
 
             io.to(room).emit("new_message", populatedMessage);
         } catch (error) {
@@ -106,7 +112,9 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
 
             if (!room) return;
 
-            const messages = await Message.find({ geohash: room, createdAt: { $lt: new Date(before) } }).populate("sender", "username avatar").sort({ createdAt: -1 }).limit(50).lean();
+            const messages = await Message.find({ geohash: room, createdAt: { $lt: new Date(before) } }).populate("sender", "username avatar").populate({ path: "replyTo", select: "content sender", populate: {
+                path: "sender", select: "username avatar"
+            } }).sort({ createdAt: -1 }).limit(50).lean();
 
             const orderedMessages = messages.reverse();
 
