@@ -8,7 +8,7 @@ const corsOptions = {
     origin: (origin: string | undefined, callback: (arg0: Error | null, arg1: boolean | undefined) => void) => {
         if (!origin) return callback(null, true); 
         if (allowedOrigins.includes(origin)) {
-            callback(null, true);
+            return callback(null, true);
         }
 
         return callback(new Error("CORS policy: No access from the specified origin"), false);
@@ -23,6 +23,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.route";
