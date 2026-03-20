@@ -2,7 +2,7 @@ import { Server } from "socket.io";
 import { AuthSocket } from "../types/socket.type";
 import { Message } from "../models/message.model";
 import { getGeohash } from "../utils/geohash";
-import { userRoomMap } from "../utils/map";
+import { pub } from "../config/redis";
 
 export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
     const userId = socket.user?.id;
@@ -21,17 +21,33 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
             }
 
             const newRoom = getGeohash(lat, lng);
-            const currentRoom = userRoomMap.get(userId);
+            const currentRoom = await pub.get(`user:${userId}:room`);
 
             if (currentRoom && currentRoom !== newRoom) {
                 socket.leave(currentRoom);
+
+                await pub.srem(`room:${currentRoom}:users`, userId);
+                await pub.del(`user:${userId}:room`);
+
+                io.to(currentRoom).emit("user_left", userId);
+
                 console.log(`User ${userId} left room ${currentRoom}`);
             }
 
             if (currentRoom !== newRoom) {
                 socket.join(newRoom);
-                userRoomMap.set(userId, newRoom);
+                
+                await pub.set(`user:${userId}:room`, newRoom);
+                await pub.sadd(`room:${newRoom}:users`, userId);
+
                 console.log(`User ${userId} joined room ${newRoom}`);
+
+                const userIds = await pub.smembers(`room:${newRoom}:users`);
+
+                io.to(newRoom).emit("room_presence", {
+                    count: userIds.length,
+                    users: userIds, 
+                });
 
                 const messages = await Message.find({ geohash: newRoom }).populate("sender", "username avatar").sort({ createdAt: -1 }).limit(50).lean();
                 const orderedMessages = messages.reverse();
@@ -44,20 +60,27 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
 
     socket.on("send_message", async ({ content, attachments }) => {
         try {
-            const room = userRoomMap.get(userId);
+            const room = await pub.get(`user:${userId}:room`);
 
             if (!room) {
                 console.error("User is not in a room. Cannot send message.");
                 return;
             }
 
-            if (!content && (!attachments || attachments.length === 0)) {
-                console.error("Message content or attachments are required.");
-                return;
+            if (!content && (!attachments || attachments.length === 0)) return;
+
+            if (attachments && attachments.length > 10) return;
+
+            // anti spam: limit message content length
+            const rateLimitKey = `rate_limit:${userId}`;
+            const count = await pub.incr(rateLimitKey);
+
+            if (count === 1) {
+                await pub.expire(rateLimitKey, 10);
             }
 
-            if (attachments && attachments.length > 10) {
-                console.error("Too many attachments. Maximum allowed is 10.");
+            if (count > 10) {
+                socket.emit("rate_limited", "Too many messages. Please wait a moment before sending more.");
                 return;
             }
 
@@ -78,17 +101,35 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
 
     socket.on("load_more", async ({ before }) => {
         try {
-            const room = userRoomMap.get(userId);
-            if (!room) {
-                console.error("User is not in a room. Cannot load more messages.");
-                return;
-            }
+            const room = await pub.get(`user:${userId}:room`);
+
+            if (!room) return;
 
             const messages = await Message.find({ geohash: room, createdAt: { $lt: new Date(before) } }).populate("sender", "username avatar").sort({ createdAt: -1 }).limit(50).lean();
+
             const orderedMessages = messages.reverse();
+
             socket.emit("more_messages", orderedMessages);
         } catch (error) {
             console.error("Error loading more messages:", error);
+        }
+    });
+
+    socket.on("disconnect", async () => {
+        try {
+            const room = await pub.get(`user:${userId}:room`);
+
+            if (room) {
+                await pub.srem(`room:${room}:users`, userId);
+                await pub.del(`user:${userId}:room`);
+
+                socket.leave(room);
+
+                io.to(room).emit("user_left", userId);
+            }
+            console.log(`Cleaned up user ${userId}`);
+        } catch (error) {
+            console.error("Error during disconnect cleanup:", error);
         }
     })
 }
