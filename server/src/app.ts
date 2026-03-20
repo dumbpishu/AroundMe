@@ -6,13 +6,15 @@ const allowedOrigins = ["http://localhost:5173", "https://geochat.pishu.in", "ht
 
 const corsOptions = {
     origin: (origin: string | undefined, callback: (arg0: Error | null, arg1: boolean | undefined) => void) => {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin) return callback(null, true); 
+        if (allowedOrigins.includes(origin)) {
             callback(null, true);
-        } else {
-            callback(new Error("Not allowed by CORS"), false);
         }
+
+        return callback(new Error("CORS policy: No access from the specified origin"), false);
     },
-    credentials: true
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 }
 
 const app = express();
