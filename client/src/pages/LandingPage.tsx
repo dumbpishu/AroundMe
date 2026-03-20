@@ -37,7 +37,7 @@ export const LandingPage = () => {
 
                     <div className="mt-7 flex flex-wrap gap-3">
                         <Link to={user ? "/chat" : "/auth/send-otp"}>
-                            <Button>Start Chatting</Button>
+                            <Button className="cursor-pointer">Start Chatting</Button>
                         </Link>
                     </div>
 
