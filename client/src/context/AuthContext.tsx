@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { AuthUser } from "../types/auth";
 import { clearAuthUser, getAuthUser, saveAuthUser } from "../lib/authStorage";
-import { getCurrentUser } from "../api/user";
+import { getCurrentUser } from "../api/auth";
 import { logoutUser } from "../api/auth";
 import { socket } from "../lib/socket";
 
@@ -32,8 +32,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const logout = async () => {
     try {
       await logoutUser();
-    } catch {
-      // Local cleanup still runs even if API logout fails.
     } finally {
       socket.disconnect();
       clearAuthUser();
@@ -58,16 +56,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     const bootstrap = async () => {
-      if (!getAuthUser()) {
+      try {
+        await refreshUser();
+      } finally {
         setIsLoading(false);
-        return;
       }
-
-      await refreshUser();
-      setIsLoading(false);
     };
 
-    void bootstrap();
+    bootstrap();
   }, []);
 
   const value = useMemo(

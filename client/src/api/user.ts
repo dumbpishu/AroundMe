@@ -1,10 +1,5 @@
 import { api } from "../lib/axios";
-import type { ApiResponse, AuthUser } from "../types/auth";
-
-export const getCurrentUser = async () => {
-  const response = await api.get<ApiResponse<AuthUser>>("/api/v1/users/me");
-  return response.data;
-};
+import type { AuthUser, ApiResponse } from "../types/auth";
 
 export const updateUserProfile = async (payload: { username?: string; name?: string }) => {
   const response = await api.put<ApiResponse<AuthUser>>("/api/v1/users/me", payload);

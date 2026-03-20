@@ -1,5 +1,6 @@
 export type AuthUser = {
   _id: string;
+  name: string;
   email: string;
   username: string;
   avatar?: string;
@@ -12,4 +13,9 @@ export type ApiResponse<T> = {
   success: boolean;
   data: T;
   message: string;
+};
+
+export type LogoutResponse = {
+    success: boolean;
+    message: string;
 };
