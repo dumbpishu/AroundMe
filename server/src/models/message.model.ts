@@ -77,7 +77,15 @@ const messageSchema = new mongoose.Schema<IMessage>(
         seenBy: [{
             type: mongoose.Schema.Types.ObjectId,
             ref: "User"
-        }]
+        }],
+        conversationId: {
+            type: String,
+            index: true
+        },
+        isPrivate: {
+            type: Boolean,
+            default: false
+        }
     },
     { timestamps: true }
 );

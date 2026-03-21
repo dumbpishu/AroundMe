@@ -19,6 +19,8 @@ export interface IMessage extends Document {
   editedAt?: Date;
   deliveredTo: mongoose.Types.ObjectId[];
   seenBy: mongoose.Types.ObjectId[];
+  conversationId: string;
+  isPrivate: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
