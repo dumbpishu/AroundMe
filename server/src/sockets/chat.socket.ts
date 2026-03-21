@@ -15,7 +15,7 @@ const extractMentions = (text?: string) => {
 };
 
 export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
-    const userId = socket.user?.id;
+    const userId = socket.user?.id?.toString();
     
     if (!userId) {
         console.error("Unauthorized socket connection");
@@ -32,27 +32,41 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
             const newRoom = getGeohash(latitude, longitude);
             const currentRoom = await pub.get(`user:${userId}:room`);
 
+            if (!newRoom) return;
+
             if (newRoom === currentRoom) return;
 
-            if (currentRoom && currentRoom !== newRoom) {
+            if (currentRoom && currentRoom !== newRoom) {  
+                await pub.hset(`room:${currentRoom}:last_seen`, userId, Date.now());     
                 socket.leave(currentRoom);
 
                 await pub.srem(`room:${currentRoom}:users`, userId);
                 await pub.del(`user:${userId}:room`);
 
-                io.to(currentRoom).emit("user_left", userId);
+                const userIds = await pub.smembers(`room:${currentRoom}:users`);
+                const lastSeenMap = await pub.hgetall(`room:${currentRoom}:last_seen`);
+
+                io.to(currentRoom).emit("room_presence", {
+                    count: userIds.length,
+                    users: userIds,
+                    lastSeen: lastSeenMap
+                });
             }  
             
             socket.join(newRoom);
 
             await pub.set(`user:${userId}:room`, newRoom);
             await pub.sadd(`room:${newRoom}:users`, userId);
+            await pub.hdel(`room:${newRoom}:last_seen`, userId);
 
             const userIds = await pub.smembers(`room:${newRoom}:users`);
 
+            const lastSeenMap = await pub.hgetall(`room:${newRoom}:last_seen`);
+
             io.to(newRoom).emit("room_presence", {
                 count: userIds.length,
-                users: userIds
+                users: userIds,
+                lastSeen: lastSeenMap
             });
 
             const messages = await Message.find({ geohash: newRoom })
@@ -112,7 +126,7 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
                 content,
                 attachments,
                 replyTo: replyTo || null,
-                mentions: mentionedUserIds || [],
+                mentions: mentionedUserIds,
                 deliveredTo: [userId],
                 seenBy: [userId]
             });
@@ -126,14 +140,16 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
                 })
                 .lean();
 
+            if (!populatedMessage) return;
+
             io.to(room).emit("new_message", populatedMessage);
 
             const usersInRoom = await pub.smembers(`room:${room}:users`);
 
-            const otherUsers = usersInRoom.filter((id) => id !== userId.toString());
+            const otherUsers = usersInRoom.filter((id) => id !== userId);
 
             if (otherUsers.length > 0 && populatedMessage) {
-                await Message.updateMany(
+                await Message.updateOne(
                     { _id: populatedMessage._id },
                     { $addToSet: { deliveredTo: { $each: otherUsers } } }
                 );
@@ -160,7 +176,7 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
                 return;
             }
 
-            if (message.sender.toString() !== userId.toString()) {
+            if (message.sender.toString() !== userId) {
                 emitError(socket, "FORBIDDEN", "You can only edit your own messages.");
                 return;
             }
@@ -184,7 +200,10 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
 
             const room = await pub.get(`user:${userId}:room`);
 
-            if (!room) return;
+            if (!room || message.geohash !== room) {
+                emitError(socket, "FORBIDDEN", "You are not in a room. Please update your location.");
+                return;
+            }
 
             io.to(room).emit("message_edited", {
                 messageId,
@@ -236,9 +255,6 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
 
     socket.on("add_reaction", async ({ messageId, reaction }) => {
         try {
-            const userId = socket.user?.id;
-            if (!userId) return;
-
             const message = await Message.findById(messageId);
             if (!message) {
                 emitError(socket, "MESSAGE_NOT_FOUND", "Message not found.");
@@ -251,10 +267,10 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
 
             const existingUsers = message.reactions.get(reaction) || [];
 
-            const alreadyReacted = existingUsers.some((id) => id.toString() === userId.toString());
+            const alreadyReacted = existingUsers.some((id) => id.toString() === userId);
 
             if (alreadyReacted) {
-                const updated = existingUsers.filter((id) => id.toString() !== userId.toString());
+                const updated = existingUsers.filter((id) => id.toString() !== userId);
                 if (updated.length > 0) {
                     message.reactions.set(reaction, updated);
                 } else {
@@ -266,11 +282,14 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
                 message.reactions.set(reaction, [...existingUsers, reactingUserId]);
             }
 
-            await message.save();
-
             const room = await pub.get(`user:${userId}:room`);
 
-            if (!room) return;
+            if (!room || message.geohash !== room) {
+                emitError(socket, "FORBIDDEN", "You are not in a room. Please update your location.");
+                return;
+            }
+
+            await message.save();
 
             io.to(room).emit("reaction_updated", {
                 messageId,
@@ -292,9 +311,12 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
 
             socket.to(room).emit("user_typing", userId);
 
-            setTimeout(() => {
-                socket.to(room).emit("user_stopped_typing", userId);
-            }, 3000);
+            if (!(socket as any)._typingTimeout) {
+                (socket as any)._typingTimeout = setTimeout(() => {
+                    socket.to(room).emit("user_stopped_typing", userId);
+                    (socket as any)._typingTimeout = null;
+                }, 3000);
+            }
         } catch (error) {
             console.error("Error starting typing indicator:", error);
         }
@@ -327,7 +349,7 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
             }
 
             await Message.updateMany(
-                { _id: { $in: messageIds }, deliveredTo: { $ne: userId } },
+                { _id: { $in: messageIds }, geohash: room, deliveredTo: { $ne: userId } },
                 { $addToSet: { deliveredTo: userId } }
             );
 
@@ -352,7 +374,7 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
             }
 
             await Message.updateMany(
-                { _id: { $in: messageIds }, seenBy: { $ne: userId } },
+                { _id: { $in: messageIds }, geohash: room, seenBy: { $ne: userId } },
                 { $addToSet: { seenBy: userId } }
             );
 
@@ -363,28 +385,5 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
         } catch (error) {
             console.error("Error marking messages as seen:", error);
         }
-    })
-
-    socket.on("disconnect", async () => {
-        try {
-            const room = await pub.get(`user:${userId}:room`);
-
-            if (room) {
-                socket.leave(room);
-                await pub.srem(`room:${room}:users`, userId);
-                await pub.del(`user:${userId}:room`);
-
-                const userIds = await pub.smembers(`room:${room}:users`);
-
-                io.to(room).emit("room_presence", {
-                    count: userIds.length,
-                    users: userIds
-                });
-            }
-
-            console.log(`User ${userId} disconnected.`);
-        } catch (error) {
-            console.error("Error on disconnect:", error);
-        }
-    })
+    });
 }

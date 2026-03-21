@@ -36,14 +36,37 @@ export const configureSocket = (io: Server) => {
         registerChatHandlers(io, socket);
 
         socket.on("disconnect", async () => {
-            console.log(`User disconnected: ${userId}, Socket ID: ${socket.id}`);
-
-            const storedUserId = await pub.get(`socket:${socket.id}:user`);
-
-            if (storedUserId === userId) {
-                await pub.del(`user:${userId}:socket`);
+            try {
+                console.log(`User disconnected: ${userId}, Socket ID: ${socket.id}`);
+    
+                const room = await pub.get(`user:${userId}:room`);
+    
+                if (room) {
+                    socket.leave(room);
+                    await pub.srem(`room:${room}:users`, userId);
+                    await pub.del(`user:${userId}:room`);
+    
+                    await pub.hset(`room:${room}:last_seen`, userId, Date.now());
+    
+                    const userIds = await pub.smembers(`room:${room}:users`);
+                    const lastSeenMap = await pub.hgetall(`room:${room}:last_seen`);
+    
+                    io.to(room).emit("room_presence", {
+                        count: userIds.length,
+                        users: userIds,
+                        lastSeen: lastSeenMap
+                    });
+                }
+    
+                const storedUserId = await pub.get(`socket:${socket.id}:user`);
+    
+                if (storedUserId === userId) {
+                    await pub.del(`user:${userId}:socket`);
+                }
+                await pub.del(`socket:${socket.id}:user`);
+            } catch (error) {
+                console.error("Error handling disconnect:", error);
             }
-            await pub.del(`socket:${socket.id}:user`);
         })
         
     })
