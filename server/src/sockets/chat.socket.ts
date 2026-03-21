@@ -76,7 +76,7 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
 
     socket.on("send_message", async ({ content, attachments, replyTo }) => {
         try {
-            const room = await pub.get(`user:${userId}:rooms`);
+            const room = await pub.get(`user:${userId}:room`);
             if (!room) {
                 emitError(socket, "NO_ROOM", "You are not in a room. Please update your location.");
                 return;
@@ -112,7 +112,9 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
                 content,
                 attachments,
                 replyTo: replyTo || null,
-                mentions: mentionedUserIds || []
+                mentions: mentionedUserIds || [],
+                deliveredTo: [userId],
+                seenBy: [userId]
             });
 
             const populatedMessage = await Message.findById(messages._id)
@@ -125,6 +127,17 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
                 .lean();
 
             io.to(room).emit("new_message", populatedMessage);
+
+            const usersInRoom = await pub.smembers(`room:${room}:users`);
+
+            const otherUsers = usersInRoom.filter((id) => id !== userId.toString());
+
+            if (otherUsers.length > 0 && populatedMessage) {
+                await Message.updateMany(
+                    { _id: populatedMessage._id },
+                    { $addToSet: { deliveredTo: { $each: otherUsers } } }
+                );
+            }
 
             mentionedUserIds.forEach((id) => {
                 io.to(id.toString()).emit("mentioned", {
@@ -255,7 +268,7 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
 
             await message.save();
 
-            const room = await pub.get(`user:${userId}:rooms`);
+            const room = await pub.get(`user:${userId}:room`);
 
             if (!room) return;
 
@@ -268,9 +281,93 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
         }
     });
 
+    socket.on("start_typing", async () => {
+        try {
+            const room = await pub.get(`user:${userId}:room`);
+
+            if (!room) {
+                emitError(socket, "NO_ROOM", "You are not in a room. Please update your location.");
+                return;
+            }
+
+            socket.to(room).emit("user_typing", userId);
+
+            setTimeout(() => {
+                socket.to(room).emit("user_stopped_typing", userId);
+            }, 3000);
+        } catch (error) {
+            console.error("Error starting typing indicator:", error);
+        }
+    });
+
+    socket.on("stop_typing", async () => {
+        try {
+            const room = await pub.get(`user:${userId}:room`);
+
+            if (!room) {
+                emitError(socket, "NO_ROOM", "You are not in a room. Please update your location.");
+                return;
+            }
+
+            socket.to(room).emit("user_stopped_typing", userId);
+        } catch (error) {
+            console.error("Error stopping typing indicator:", error);
+        }
+    });
+
+    socket.on("message_delivered", async ({ messageIds }) => {
+        try {
+            if (!Array.isArray(messageIds)) return;
+
+            const room = await pub.get(`user:${userId}:room`);
+
+            if (!room) {
+                emitError(socket, "NO_ROOM", "You are not in a room. Please update your location.");
+                return;
+            }
+
+            await Message.updateMany(
+                { _id: { $in: messageIds }, deliveredTo: { $ne: userId } },
+                { $addToSet: { deliveredTo: userId } }
+            );
+
+            io.to(room).emit("messages_delivered", {
+                messageIds,
+                userId
+            });
+        } catch (error) {
+            console.error("Error marking messages as delivered:", error);
+        }
+    });
+
+    socket.on("message_seen", async ({ messageIds }) => {
+        try {
+            if (!Array.isArray(messageIds)) return;
+
+            const room = await pub.get(`user:${userId}:room`);
+
+            if (!room) {
+                emitError(socket, "NO_ROOM", "You are not in a room. Please update your location.");
+                return;
+            }
+
+            await Message.updateMany(
+                { _id: { $in: messageIds }, seenBy: { $ne: userId } },
+                { $addToSet: { seenBy: userId } }
+            );
+
+            io.to(room).emit("messages_seen", {
+                messageIds,
+                userId
+            });
+        } catch (error) {
+            console.error("Error marking messages as seen:", error);
+        }
+    })
+
     socket.on("disconnect", async () => {
         try {
-            const room = await pub.get(`user:${userId}:rooms`);
+            const room = await pub.get(`user:${userId}:room`);
 
             if (room) {
                 socket.leave(room);

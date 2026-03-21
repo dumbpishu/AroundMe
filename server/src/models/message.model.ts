@@ -69,7 +69,15 @@ const messageSchema = new mongoose.Schema<IMessage>(
         },
         editedAt: {
             type: Date
-        }
+        },
+        deliveredTo: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
+        }],
+        seenBy: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
+        }]
     },
     { timestamps: true }
 );

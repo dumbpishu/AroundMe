@@ -17,6 +17,8 @@ export interface IMessage extends Document {
   mentions: mongoose.Types.ObjectId[];
   isEdited: boolean;
   editedAt?: Date;
+  deliveredTo: mongoose.Types.ObjectId[];
+  seenBy: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
