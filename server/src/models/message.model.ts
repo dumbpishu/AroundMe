@@ -21,7 +21,8 @@ const messageSchema = new mongoose.Schema<IMessage>(
         sender: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
-            required: true
+            required: true,
+            index: true
         },
         geohash: {
             type: String,
@@ -29,7 +30,9 @@ const messageSchema = new mongoose.Schema<IMessage>(
             index: true
         },
         content: {
-            type: String
+            type: String,
+            trim: true,
+            maxlength: 1000
         },
         attachments: {
             type: [attachmentSchema],
@@ -48,12 +51,24 @@ const messageSchema = new mongoose.Schema<IMessage>(
         reactions: {
             type: Map,
             of: [
-                {
-                    type: mongoose.Schema.Types.ObjectId,
-                    ref: "User"
-                }
+                    {
+                        type: mongoose.Schema.Types.ObjectId,
+                        ref: "User"
+                    }
             ],
             default: {}
+        },
+        mentions: {
+            type: [mongoose.Schema.Types.ObjectId],
+            ref: "User",
+            default: []
+        },
+        isEdited: {
+            type: Boolean,
+            default: false
+        },
+        editedAt: {
+            type: Date
         }
     },
     { timestamps: true }
@@ -61,5 +76,6 @@ const messageSchema = new mongoose.Schema<IMessage>(
 
 messageSchema.index({ geohash: 1, createdAt: -1 });
 messageSchema.index({ sender: 1 });
+messageSchema.index({ mentions: 1 });
 
 export const Message = mongoose.model<IMessage>("Message", messageSchema);

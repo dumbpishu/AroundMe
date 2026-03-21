@@ -14,6 +14,9 @@ export interface IMessage extends Document {
   attachments?: IAttachment[];
   replyTo?: mongoose.Types.ObjectId | null;
   reactions: Map<string, mongoose.Types.ObjectId[]>;
+  mentions: mongoose.Types.ObjectId[];
+  isEdited: boolean;
+  editedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
