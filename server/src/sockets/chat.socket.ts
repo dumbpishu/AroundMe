@@ -3,10 +3,12 @@ import { Types } from "mongoose";
 import { AuthSocket } from "../types/socket.type";
 import { Message } from "../models/message.model";
 import { User } from "../models/user.model";
+import { Notification } from "../models/notification.model";
 import { getGeohash } from "../utils/geohash";
 import { pub } from "../config/redis";
 import { emitError } from "./error";
 import { getConversationId } from "../utils/conversations";
+import { createNotification, sendNotification } from "../services/notification.service";
 
 const extractMentions = (text?: string) => {
   if (!text) return [];
@@ -156,12 +158,24 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
                 );
             }
 
-            mentionedUserIds.forEach((id) => {
-                io.to(id.toString()).emit("mentioned", {
-                    message: populatedMessage,
-                    room
+            for (const id of mentionedUserIds) {
+                const targetUserId = id.toString();
+                if (targetUserId === userId) continue;
+
+                const notification = await createNotification({
+                    userId: targetUserId,
+                    type: "MENTION",
+                    messageId: populatedMessage._id.toString(),
+                    from: userId
                 });
-            });
+
+                await sendNotification({
+                    io,
+                    pub,
+                    userId: targetUserId,
+                    payload: notification
+                });
+            }
 
         } catch (error) {
             console.error("Error sending message:", error);
@@ -215,12 +229,24 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
 
             const added = newMentionedUserIds.filter((id) => !oldMentions.includes(id.toString()));
 
-            added.forEach((id) => {
-                io.to(id.toString()).emit("mentioned", {
-                    message: newContent,
-                    room
-                })
-            })
+            for (const id of added) {
+                const targetUserId = id.toString();
+                if (targetUserId === userId) continue;
+
+                const notification = await createNotification({
+                    userId: targetUserId,
+                    type: "MENTION",
+                    messageId: message._id.toString(),
+                    from: userId
+                });
+
+                await sendNotification({
+                    io,
+                    pub,
+                    userId: targetUserId,
+                    payload: notification
+                });
+             }
         } catch (error) {
             console.error("Error editing message:", error);
         }
@@ -291,6 +317,22 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
             }
 
             await message.save();
+
+            if (message.sender.toString() !== userId) {
+                const notification = await createNotification({
+                    userId: message.sender.toString(),
+                    type: "REACTION",
+                    messageId: message._id.toString(),
+                    from: userId
+                });
+
+                await sendNotification({
+                    io,
+                    pub,
+                    userId: message.sender.toString(),
+                    payload: notification
+                });
+            }
 
             io.to(room).emit("reaction_updated", {
                 messageId,
@@ -395,7 +437,7 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
                 emitError(socket, "CANNOT_CHAT_WITH_SELF", "You cannot start a private chat with yourself.");
                 return;
             }
-            
+
             if (!Types.ObjectId.isValid(targetedUserId)) {
                 emitError(socket, "INVALID_USER_ID", "The targeted user ID is invalid.");
                 return;
@@ -505,6 +547,26 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
 
             // fallback in case the other user is not connected to the private chat room
             io.to(targetedUserId).emit("new_private_message", populatedMessage);
+
+            const sockets = await io.in(targetedUserId).fetchSockets();
+
+            const isInConversation = sockets.some((s) => s.rooms.has(conversationId));
+
+            if (!isInConversation) {
+                const notification = await createNotification({
+                    userId: targetedUserId,
+                    type: "PRIVATE_MESSAGE",
+                    messageId: populatedMessage._id.toString(),
+                    from: userId
+                });
+
+                await sendNotification({
+                    io,
+                    pub,
+                    userId: targetedUserId,
+                    payload: notification
+                });
+            }
         } catch (error) {
             console.error("Error sending private message:", error);
         }
@@ -550,6 +612,43 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
 
         } catch (error) {
             console.error("Error marking private messages as seen:", error);
+        }
+    });
+
+    socket.on("get_notifications", async ({ page = 1 }) => {
+        try {
+            const limit = 20;
+            const skip = (page - 1) * limit;
+            
+            const [notifications, unreadCount] = await Promise.all([
+                Notification.find({ user: userId })
+                    .sort({ createdAt: -1 })
+                    .skip(skip)
+                    .limit(limit)
+                    .populate("from", "username avatar")
+                    .populate("message", "content sender")
+                    .lean(),
+                Notification.countDocuments({ user: userId, isRead: false })
+            ]);
+
+            socket.emit("notifications", {
+                notifications,
+                unreadCount,
+                currentPage: page
+            });
+        } catch (error) {
+            console.error("Error fetching notifications:", error);
+        }
+    });
+
+    socket.on("mark_notification_read", async ({ notificationIds }) => {
+        try {
+            if (!Array.isArray(notificationIds)) return;
+            await Notification.updateMany({ _id: { $in: notificationIds }, user: userId }, { isRead: true });  
+
+            socket.emit("notifications_marked_read", notificationIds);
+        } catch (error) {
+            console.error("Error marking notification as read:", error);
         }
     });
 }

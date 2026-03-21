@@ -38,6 +38,8 @@ export const configureSocket = (io: Server) => {
     
             await pub.set(`user:${userId}:socket`, socket.id, "EX", ONE_DAY);
             await pub.set(`socket:${socket.id}:user`, userId, "EX", ONE_DAY);
+
+            await pub.sadd("online_users", userId);
     
             registerChatHandlers(io, socket);
     
@@ -71,6 +73,7 @@ export const configureSocket = (io: Server) => {
                         await pub.del(`user:${userId}:socket`);
                     }
                     await pub.del(`socket:${socket.id}:user`);
+                    await pub.srem("online_users", userId);
                 } catch (error) {
                     console.error("Error handling disconnect:", error);
                 }
