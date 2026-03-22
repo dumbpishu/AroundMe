@@ -32,6 +32,8 @@ export const VerifyOtp = () => {
       setLoading(true);
 
       await verifyOtp(email, otp);
+      toast.success("Login successful 🎉");
+      
       navigate("/chat");
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Invalid OTP");

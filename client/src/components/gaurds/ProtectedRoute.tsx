@@ -1,11 +1,11 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "../../store/auth.store";
 
-export const PublicRoute = () => {
+export const ProtectedRoute = () => {
   const user = useAuthStore((s) => s.user);
 
-  if (user) {
-    return <Navigate to="/chat" replace />;
+  if (!user) {
+    return <Navigate to="/auth/send-otp" replace />;
   }
 
   return <Outlet />;

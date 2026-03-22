@@ -22,6 +22,7 @@ export const SendOtp = () => {
       setLoading(true);
 
       await sendOtp(email);
+      toast.success("OTP sent successfully 🚀");
       navigate("/auth/verify-otp", { state: { email } });
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to send OTP");

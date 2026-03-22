@@ -8,6 +8,9 @@ import { SendOtp } from "../pages/auth/SendOtp";
 import { VerifyOtp } from "../pages/auth/VerifyOtp";
 import { Chat } from "../pages/chat/Chat";
 
+import { PublicRoute } from "../components/gaurds/PublicRoute";
+import { ProtectedRoute } from "../components/gaurds/ProtectedRoute";
+
 export const appRouter = createBrowserRouter([
     {
         path: "/",
@@ -18,26 +21,36 @@ export const appRouter = createBrowserRouter([
                 element: <LandingPage />
             },
             {
-                path: "auth",
-                element: <AuthLayout />,
+                element: <PublicRoute />,
                 children: [
                     {
-                        path: "send-otp",
-                        element: <SendOtp />
-                    },
-                    {
-                        path: "verify-otp",
-                        element: <VerifyOtp />
+                        path: "auth",
+                        element: <AuthLayout />,
+                        children: [
+                            {
+                                path: "send-otp",
+                                element: <SendOtp />
+                            },
+                            {
+                                path: "verify-otp",
+                                element: <VerifyOtp />
+                            }
+                        ]
                     }
                 ]
             },
             {
-                path: "chat",
-                element: <ChatLayout />,
+                element: <ProtectedRoute />,
                 children: [
                     {
-                        index: true,
-                        element: <Chat />
+                        path: "chat",
+                        element: <ChatLayout />,
+                        children: [
+                            {
+                                index: true,
+                                element: <Chat />
+                            }
+                        ]
                     }
                 ]
             }
