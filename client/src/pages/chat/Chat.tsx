@@ -45,25 +45,23 @@ export const Chat = () => {
 
   return (
     <div className="flex flex-col h-full">
-      
       {/* 🔹 Header */}
-      <div className="p-4 border-b font-semibold">
-        GeoChat
-      </div>
+      <div className="p-4 border-b font-semibold">GeoChat</div>
 
       {/* 🔹 Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg) => {
           const isMe = msg.sender?._id === user?._id;
 
           return (
             <div
               key={msg._id}
-              className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+              className={`flex ${
+                isMe ? "justify-end" : "justify-start"
+              } group`}
             >
-              <div className="max-w-xs">
-
-                {/* Message bubble */}
+              <div className="max-w-xs relative">
+                {/* 🔹 Message bubble */}
                 <div
                   className={`p-2 rounded-lg ${
                     isMe
@@ -107,15 +105,23 @@ export const Chat = () => {
                   </div>
                 )}
 
-                {/* 🔥 Add reaction buttons */}
-                <div className="flex gap-2 mt-1">
+                {/* 🔥 Hover reaction picker */}
+                <div
+                  className={`
+                    absolute -top-10 left-0 
+                    flex gap-2 px-2 py-1 rounded-lg shadow
+                    bg-white border
+                    opacity-0 group-hover:opacity-100
+                    transition duration-200
+                  `}
+                >
                   {["👍", "❤️", "😂"].map((emoji) => (
                     <button
                       key={emoji}
                       onClick={() =>
                         handleReaction(msg._id, emoji)
                       }
-                      className="text-sm opacity-70 hover:opacity-100"
+                      className="text-lg hover:scale-110 transition"
                     >
                       {emoji}
                     </button>

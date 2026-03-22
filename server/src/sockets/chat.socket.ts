@@ -8,7 +8,7 @@ import { registerPrivateHandler } from "./private.socket";
 import { registerReactionHandler } from "./reaction.socket";
 import { registerTypingHandler } from "./typing.socket";
 
-export const registerChatHandler = (io: Server, socket: AuthSocket) => {
+export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
     const userId = socket.user?.id.toString();
 
     if (!userId) {

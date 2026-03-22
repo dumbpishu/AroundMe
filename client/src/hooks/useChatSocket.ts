@@ -23,7 +23,7 @@ export const useChatSocket = () => {
       addMessage(message);
     });
 
-    socket.on("update_reaction", ({ messageId, reactions }) => {
+    socket.on("reaction_updated", ({ messageId, reactions }) => {
       updateReaction(messageId, reactions);
     });
 
