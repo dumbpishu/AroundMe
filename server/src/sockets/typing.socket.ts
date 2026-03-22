@@ -8,19 +8,12 @@ export const registerTypingHandler = (io: Server, socket: AuthSocket, userId: st
         try {
             const room = await pub.get(`user:${userId}:room`);
 
-            const username = socket.user?.username;
-
-            console.log(`${username} started typing in room ${room}`);
-
             if (!room) {
                 emitError(socket, "NO_ROOM", "You are not in a room. Please update your location.");
                 return;
             }
 
-            socket.to(room).emit("user_typing", {
-                userId,
-                username,
-            });
+            socket.to(room).emit("user_typing", userId);
 
             if ((socket as any)._typingTimeout) {
                 clearTimeout((socket as any)._typingTimeout);
