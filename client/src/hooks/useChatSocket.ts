@@ -9,6 +9,8 @@ export const useChatSocket = () => {
   const setMessages = useChatStore((s) => s.setMessages);
   const addMessage = useChatStore((s) => s.addMessage);
   const updateReaction = useChatStore((s) => s.updateReaction);
+  const setTyping = useChatStore((s) => s.setTyping);
+  const removeTyping = useChatStore((s) => s.removeTyping);
 
   useEffect(() => {
     if (!socket) return;
@@ -27,10 +29,20 @@ export const useChatSocket = () => {
       updateReaction(messageId, reactions);
     });
 
+    socket.on("user_typing", ({ userId, username }) => {
+      setTyping({ userId, username });
+    });
+
+    socket.on("user_stopped_typing", (userId) => {
+      removeTyping(userId);
+    });
+
     return () => {
       socket.off("room_messages");
       socket.off("new_message");
       socket.off("update_reaction");
+      socket.off("user_typing");
+      socket.off("user_stopped_typing");
     };
   }, [socket]);
 };

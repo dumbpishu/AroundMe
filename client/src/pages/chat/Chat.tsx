@@ -7,48 +7,40 @@ import { useAuthStore } from "../../store/auth.store";
 
 export const Chat = () => {
   const messages = useChatStore((s) => s.messages);
+  const typingUsers = useChatStore((s) => s.typingUsers);
+
   const socket = useSocketStore((s) => s.socket);
   const user = useAuthStore((s) => s.user);
 
   const [text, setText] = useState("");
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  // 🔥 attach socket listeners
   useChatSocket();
-
-  // 🔥 join room via location
   useLocation();
 
-  // 🔥 auto scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 🔥 send message
   const sendMessage = () => {
     if (!text.trim()) return;
 
-    socket?.emit("send_message", {
-      content: text,
-    });
+    socket?.emit("send_message", { content: text });
+    socket?.emit("stop_typing"); // 🔥 stop typing on send
 
     setText("");
   };
 
-  // 🔥 send reaction
   const handleReaction = (messageId: string, reaction: string) => {
-    socket?.emit("add_reaction", {
-      messageId,
-      reaction,
-    });
+    socket?.emit("add_reaction", { messageId, reaction });
   };
 
   return (
     <div className="flex flex-col h-full">
-      {/* 🔹 Header */}
+      {/* Header */}
       <div className="p-4 border-b font-semibold">GeoChat</div>
 
-      {/* 🔹 Messages */}
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.map((msg) => {
           const isMe = msg.sender?._id === user?._id;
@@ -61,7 +53,6 @@ export const Chat = () => {
               } group`}
             >
               <div className="max-w-xs relative">
-                {/* 🔹 Message bubble */}
                 <div
                   className={`p-2 rounded-lg ${
                     isMe
@@ -74,16 +65,17 @@ export const Chat = () => {
                       {msg.sender.username}
                     </div>
                   )}
-
                   <div>{msg.content}</div>
                 </div>
 
-                {/* 🔥 Reactions display */}
+                {/* Reactions */}
                 {msg.reactions && (
                   <div className="flex gap-2 mt-1 flex-wrap">
                     {Object.entries(msg.reactions).map(
                       ([emoji, users]) => {
-                        const reacted = users.includes(user?._id || "");
+                        const reacted = users.includes(
+                          user?._id || ""
+                        );
 
                         return (
                           <button
@@ -105,16 +97,8 @@ export const Chat = () => {
                   </div>
                 )}
 
-                {/* 🔥 Hover reaction picker */}
-                <div
-                  className={`
-                    absolute -top-10 left-0 
-                    flex gap-2 px-2 py-1 rounded-lg shadow
-                    bg-white border
-                    opacity-0 group-hover:opacity-100
-                    transition duration-200
-                  `}
-                >
+                {/* Hover emoji */}
+                <div className="absolute -top-10 left-0 flex gap-2 px-2 py-1 rounded-lg shadow bg-white border opacity-0 group-hover:opacity-100 transition">
                   {["👍", "❤️", "😂"].map((emoji) => (
                     <button
                       key={emoji}
@@ -135,14 +119,30 @@ export const Chat = () => {
         <div ref={bottomRef} />
       </div>
 
-      {/* 🔹 Input */}
+      {/* 🔥 Typing Indicator */}
+      {typingUsers.length > 0 && (
+        <div className="px-4 pb-2 text-sm text-gray-500 italic">
+          {typingUsers.length === 1
+            ? `${typingUsers[0].username} is typing...`
+            : `${typingUsers
+                .map((u) => u.username)
+                .join(", ")} are typing...`}
+        </div>
+      )}
+
+      {/* Input */}
       <div className="p-4 border-t flex gap-2">
         <input
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            socket?.emit("start_typing");
+          }}
+          onBlur={() => socket?.emit("stop_typing")}
           className="flex-1 border p-2 rounded"
           placeholder="Type message..."
         />
+
         <button
           onClick={sendMessage}
           className="bg-blue-500 text-white px-4 rounded"

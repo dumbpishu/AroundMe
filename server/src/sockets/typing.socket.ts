@@ -8,19 +8,27 @@ export const registerTypingHandler = (io: Server, socket: AuthSocket, userId: st
         try {
             const room = await pub.get(`user:${userId}:room`);
 
+            const username = socket.user?.username;
+
+            console.log(`${username} started typing in room ${room}`);
+
             if (!room) {
                 emitError(socket, "NO_ROOM", "You are not in a room. Please update your location.");
                 return;
             }
 
-            socket.to(room).emit("user_typing", userId);
+            socket.to(room).emit("user_typing", {
+                userId,
+                username,
+            });
 
-            if (!(socket as any)._typingTimeout) {
-                (socket as any)._typingTimeout = setTimeout(() => {
-                    socket.to(room).emit("user_stopped_typing", userId);
-                    (socket as any)._typingTimeout = null;
-                }, 3000);
+            if ((socket as any)._typingTimeout) {
+                clearTimeout((socket as any)._typingTimeout);
             }
+
+            (socket as any)._typingTimeout = setTimeout(() => {
+                socket.to(room).emit("user_stopped_typing", userId);
+            }, 2000);
         } catch (error) {
             console.error("Error starting typing indicator:", error);
         }

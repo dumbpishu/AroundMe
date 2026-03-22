@@ -10,22 +10,31 @@ type Message = {
     avatar?: string;
   };
   createdAt: string;
-
   reactions?: Record<string, string[]>;
 };
 
+type TypingUser = {
+    userId: string;
+    username: string;
+}
+
 type ChatState = {
     messages: Message[];
+    typingUsers: TypingUser[];
 
     setMessages: (messages: Message[]) => void;
     addMessage: (message: Message) => void;
     clearMessages: () => void;
 
     updateReaction: (messageId: string, reactions: Record<string, string[]>) => void;
+
+    setTyping: (typingUser: TypingUser) => void;
+    removeTyping: (userId: string) => void;
 }
 
 export const useChatStore = create<ChatState>((set) => ({
     messages: [],
+    typingUsers: [],
 
     setMessages: (messages) => set({ messages }),
 
@@ -38,4 +47,15 @@ export const useChatStore = create<ChatState>((set) => ({
     })),
 
     clearMessages: () => set({ messages: [] }),
+
+    setTyping: (typingUser) => set((state) => {
+        if (state.typingUsers.some((u) => u.userId === typingUser.userId)) {
+            return state; // already exists
+        }
+        return { typingUsers: [...state.typingUsers, typingUser] };
+    }),
+
+    removeTyping: (userId) => set((state) => ({
+        typingUsers: state.typingUsers.filter((u) => u.userId !== userId),
+    })),
 }))
