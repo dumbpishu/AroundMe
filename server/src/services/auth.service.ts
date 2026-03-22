@@ -2,6 +2,7 @@ import { Otp } from "../models/otp.model";
 import { User } from "../models/user.model";
 import { sendEmail } from "./email.service";
 import { generateOtp, verifyOtp, otpEmailTemplate, generateAuthToken } from "../utils/auth";
+import { ApiError } from "../utils/apiError";
 
 const OTP_EXPIRY_IN_MS = 60 * 1000;
 
@@ -9,7 +10,7 @@ export const sendOtpService = async (email: string) => {
     const existingOtp = await Otp.findOne({ email });
 
     if (existingOtp && existingOtp.expiresAt > new Date()) {
-        throw new Error("An OTP has already been sent to this email. Please wait before requesting a new one.");
+        throw new ApiError(400, "OTP already sent. Please wait before requesting a new one.");
     }
 
     const { otp, hashedOtp } = generateOtp();
@@ -23,7 +24,7 @@ export const sendOtpService = async (email: string) => {
 
     sendEmail(email, "Your OTP Code", otpEmailTemplate(otp)).catch((error) => {
         console.error("Error sending OTP email:", error);
-        throw new Error("Failed to send OTP email.");
+        throw new ApiError(500, "Failed to send OTP email.");
     });
 }
 
@@ -31,7 +32,7 @@ export const verifyOtpService = async (email: string, otp: string) => {
     const otpRecord = await Otp.findOne({ email });
 
     if (!otpRecord || otpRecord.expiresAt < new Date()) {
-        throw new Error("OTP has expired or does not exist.");
+        throw new ApiError(400, "Please request a new OTP.");
     }
 
     const isValid = await verifyOtp(otp, otpRecord.otp);
@@ -54,6 +55,7 @@ export const verifyOtpService = async (email: string, otp: string) => {
 
     const userPayload = {
         _id: user._id,
+        name: user.name,
         email: user.email,
         username: user.username,
         avatar: user.avatar,
@@ -69,11 +71,11 @@ export const getCurrentUserService = async (userId: string) => {
     const user = await User.findById(userId);
 
     if (!user || user.isDeleted) {
-        throw new Error("User not found.");
+        throw new ApiError(404, "User not found.");
     }
 
     if (!user.isVerified) {
-        throw new Error("User is not verified.");
+        throw new ApiError(403, "User is not verified.");
     }
 
     const payload = {

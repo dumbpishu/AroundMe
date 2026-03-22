@@ -46,7 +46,7 @@ export const otpEmailTemplate = (otp: string) => {
       </div>
 
       <p style="font-size:13px;color:#6b7280;margin:0;">
-        This OTP is valid for <strong>5 minutes</strong>.
+        This OTP is valid for <strong>1 minutes</strong>.
       </p>
 
       <p style="font-size:12px;color:#9ca3af;margin-top:16px;">

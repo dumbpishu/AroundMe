@@ -1,6 +1,8 @@
 import express from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import { Request, Response, NextFunction } from "express";
+import { ApiError } from "./utils/apiError";
 
 const allowedOrigins = ["http://localhost:5173", "https://geochat.pishu.in", "https://geo-chat-tau.vercel.app"];
 
@@ -28,21 +30,16 @@ app.use(cors(corsOptions));
 import authRoutes from "./routes/auth.route";
 import userRoutes from "./routes/user.route";
 import uploadRoutes from "./routes/upload.route";
+import { errorHandler } from "./middlewares/error.middleware";
 
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/uploads", uploadRoutes);
 
-import { Request, Response, NextFunction } from "express";
+app.use(errorHandler);
 
-// global error handler
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-    console.error("Global Error Handler:", err);
-
-    res.status(500).json({
-        success: false,
-        message: err.message || "Internal Server Error"
-    });
+app.use((req: Request, res: Response, next: NextFunction) => {
+    next(new ApiError(404, "Route not found"));
 });
 
 export default app;
