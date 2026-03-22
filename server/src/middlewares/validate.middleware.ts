@@ -1,19 +1,18 @@
-import { NextFunction, Request, Response } from "express";
-import { ZodSchema } from "zod";
+import { Request, Response, NextFunction } from "express";
 import { ApiError } from "../utils/apiError";
+import { ZodSchema } from "zod";
 
 export const validate = (schema: ZodSchema<any>) => (req: Request, res: Response, next: NextFunction) => {
     try {
-        schema.safeParse({
-            body: req.body,
-            query: req.query,
-            params: req.params
-        });
+        const result = schema.safeParse(req.body);
 
+        if (!result.success) {
+            throw new ApiError(400, "Invalid request data", result.error);
+        }
+
+        req.body = result.data;
         next();
-    } catch (error: any) {
-        const message = error.errors?.[0]?.message || "Validation error";
-
-        next(new ApiError(400, message, error.errors));
+    } catch (error) {
+        next(error);
     }
 }

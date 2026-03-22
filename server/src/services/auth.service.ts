@@ -38,7 +38,7 @@ export const verifyOtpService = async (email: string, otp: string) => {
     const isValid = await verifyOtp(otp, otpRecord.otp);
     
     if (!isValid) {
-        throw new Error("Invalid OTP.");
+        throw new ApiError(400, "Invalid OTP. Please try again.");
     }
 
     await Otp.deleteOne({ email });

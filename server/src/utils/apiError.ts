@@ -1,15 +1,14 @@
 export class ApiError extends Error {
     success: boolean;
-    statusCode: number;
-    message: string;
+    statusCode: number
     error?: any;
 
     constructor(statusCode: number, message: string, error?: any) {
         super(message);
         this.success = false;
         this.statusCode = statusCode;
-        this.message = message;
-        if (error !== undefined) {
+        
+        if (error) {
             this.error = error;
         }
 

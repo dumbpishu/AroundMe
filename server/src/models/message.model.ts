@@ -21,8 +21,7 @@ const messageSchema = new mongoose.Schema<IMessage>(
         sender: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
-            required: true,
-            index: true
+            required: true
         },
         geohash: {
             type: String,

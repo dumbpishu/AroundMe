@@ -36,10 +36,10 @@ app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/uploads", uploadRoutes);
 
-app.use(errorHandler);
-
 app.use((req: Request, res: Response, next: NextFunction) => {
     next(new ApiError(404, "Route not found"));
 });
+
+app.use(errorHandler);
 
 export default app;
