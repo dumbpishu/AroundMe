@@ -73,11 +73,11 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
             });
 
             const messages = await Message.find({ geohash: newRoom })
-                .populate("sender", "username")
+                .populate("sender", "username avatar _id")
                 .populate({
                     path: "replyTo",
                     select: "content sender",
-                    populate: { path: "sender", select: "username" }
+                    populate: { path: "sender", select: "username avatar _id" }
                 })
                 .sort({ createdAt: -1 })
                 .limit(50)
@@ -135,11 +135,11 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
             });
 
             const populatedMessage = await Message.findById(messages._id)
-                .populate("sender", "username avatar")
+                .populate("sender", "username avatar _id")
                 .populate({
                     path: "replyTo",
                     select: "content sender",
-                    populate: { path: "sender", select: "username avatar" }
+                    populate: { path: "sender", select: "username avatar _id" }
                 })
                 .lean();
 
@@ -262,11 +262,11 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
             }
 
             const messages = await Message.find({ geohash: room, createdAt: { $lt: new Date(before) } })
-                .populate("sender", "username")
+                .populate("sender", "username avatar _id")
                 .populate({
                     path: "replyTo",
                     select: "content sender",
-                    populate: { path: "sender", select: "username avatar" }
+                    populate: { path: "sender", select: "username avatar _id" }
                 })
                 .sort({ createdAt: -1 })
                 .limit(50)
@@ -453,11 +453,11 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
             socket.join(conversationId);
 
             const messages = await Message.find({ conversationId, isPrivate: true })
-                .populate("sender", "username avatar")
+                .populate("sender", "username avatar _id")
                 .populate({
                     path: "replyTo",
                     select: "content sender",
-                    populate: { path: "sender", select: "username avatar" }
+                    populate: { path: "sender", select: "username avatar _id" }
                 })
                 .sort({ createdAt: -1 })
                 .limit(50)
@@ -532,11 +532,11 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
             });
 
             const populatedMessage = await Message.findById(message._id)
-                .populate("sender", "username avatar")
+                .populate("sender", "username avatar _id")
                 .populate({
                     path: "replyTo",
                     select: "content sender",
-                    populate: { path: "sender", select: "username avatar" }
+                    populate: { path: "sender", select: "username avatar _id" }
                 })
                 .lean();
 
@@ -625,7 +625,7 @@ export const registerChatHandlers = (io: Server, socket: AuthSocket) => {
                     .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(limit)
-                    .populate("from", "username avatar")
+                    .populate("from", "username avatar _id")
                     .populate("message", "content sender")
                     .lean(),
                 Notification.countDocuments({ user: userId, isRead: false })

@@ -37,7 +37,7 @@ import { authMiddleware } from "./middlewares/authMiddleware";
 app.use("/api/v1/auth", authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/uploads", uploadRoutes);
-app.get("/api/v1/location", authMiddleware, getLocationFromIP);
+app.get("/location", authMiddleware, getLocationFromIP);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
     next(new ApiError(404, "Route not found"));
