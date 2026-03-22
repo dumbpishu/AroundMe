@@ -3,8 +3,6 @@ import { ApiError } from "../utils/apiError";
 import { ZodError } from "zod";
 
 export const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
-    console.error("Global Error Handler:", err);
-
     if (err instanceof ZodError) {
         return res.status(400).json({
             success: false,

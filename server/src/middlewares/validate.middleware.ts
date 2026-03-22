@@ -7,7 +7,11 @@ export const validate = (schema: ZodSchema<any>) => (req: Request, res: Response
         const result = schema.safeParse(req.body);
 
         if (!result.success) {
-            throw new ApiError(400, "Invalid request data", result.error);
+            const formattedErrors = result.error.issues.map((err) => ({
+                field: err.path.join("."),
+                message: err.message,
+            }));
+            throw new ApiError(400, "Invalid request data", formattedErrors);
         }
 
         req.body = result.data;
