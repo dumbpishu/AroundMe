@@ -32,7 +32,7 @@ export const verifyOtpService = async (email: string, otp: string) => {
     const otpRecord = await Otp.findOne({ email });
 
     if (!otpRecord || otpRecord.expiresAt < new Date()) {
-        throw new ApiError(400, "Please request a new OTP.");
+        throw new ApiError(400, "Please request a new OTP. The previous one has expired.");
     }
 
     const isValid = await verifyOtp(otp, otpRecord.otp);
